@@ -41,14 +41,34 @@ jobs:
           npm install --silent
           npm run build
           
+          # Ensure production environment files are in place
+          echo "Checking environment configuration..."
+          if [ ! -f backend/.env ]; then
+            echo "Warning: backend/.env not found, using .env.example"
+            cp backend/.env.example backend/.env
+          fi
+          if [ ! -f frontend/.env ]; then
+            echo "Warning: frontend/.env not found, using .env.example"
+            cp frontend/.env.example frontend/.env
+          fi
+          
           # Restart backend service
           echo "Restarting backend service..."
           cd ..
           pm2 restart mall-pos-backend || pm2 start ecosystem.config.js
           
-          # Reload nginx
-          echo "Reloading nginx..."
-          sudo systemctl reload nginx
+          # Update Nginx configuration if HTTPS config exists
+          echo "Updating Nginx configuration..."
+          if [ -f frontend/nginx-https.conf ] && [ -f /etc/letsencrypt/live/bharatkitchenware.store/fullchain.pem ]; then
+            sudo cp frontend/nginx-https.conf /etc/nginx/sites-available/mall-pos
+            echo "Using HTTPS configuration"
+          else
+            echo "SSL certificates not found, using HTTP configuration"
+          fi
+          
+          # Test and reload nginx
+          echo "Testing and reloading nginx..."
+          sudo nginx -t && sudo systemctl reload nginx
           
           # Check service status
           echo "Checking service status..."
