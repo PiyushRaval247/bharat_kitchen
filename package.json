@@ -1,0 +1,66 @@
+{
+  "name": "mall-pos",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "description": "Desktop POS application ",
+  "author": "",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:*\"",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "cd frontend && npx vite",
+    "dev:electron": "wait-on tcp:%PORT% http://localhost:%FRONTEND_DEV_PORT% && electron .",
+    "build": "npm run build:frontend; electron-builder",
+    "build:frontend": "cd frontend && npx vite build",
+    "start": "electron .",
+    "migrate": "node backend/db/migrate.js",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:prod": "docker-compose up --build -d",
+    "docker:prod:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --rmi all --remove-orphans",
+    "docker:backend:logs": "docker-compose logs -f backend",
+    "docker:frontend:logs": "docker-compose logs -f frontend"
+  },
+  "dependencies": {
+    "electron-is-dev": "^2.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.mall.pos",
+    "productName": "Mall POS",
+    "files": [
+      "main.js",
+      "backend/**",
+      "frontend/dist/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/db/",
+        "to": "db",
+        "filter": ["**/*"]
+      }
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false
+    }
+  }
+}
+
+
