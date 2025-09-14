@@ -1,0 +1,66 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_PORT || 22 }}
+        script: |
+          echo "Starting deployment..."
+          
+          # Navigate to project directory
+          cd /home/deploy/mall-pos || { echo "Project directory not found!"; exit 1; }
+          
+          # Pull latest changes
+          echo "Pulling latest changes from GitHub..."
+          git pull origin main
+          
+          # Install backend dependencies
+          echo "Installing backend dependencies..."
+          cd backend
+          npm install --production --silent
+          
+          # Build frontend
+          echo "Building frontend..."
+          cd ../frontend
+          npm install --silent
+          npm run build
+          
+          # Restart backend service
+          echo "Restarting backend service..."
+          cd ..
+          pm2 restart mall-pos-backend || pm2 start ecosystem.config.js
+          
+          # Reload nginx
+          echo "Reloading nginx..."
+          sudo systemctl reload nginx
+          
+          # Check service status
+          echo "Checking service status..."
+          pm2 status
+          
+          echo "Deployment completed successfully!"
+          
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi
